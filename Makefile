@@ -11,17 +11,17 @@ ifneq "$(GITSTATUS)" ""
 	GITDIRTY = -dirty
 endif
 
-export TEXMFHOME ?= lsst-texmf/texmf
+export TEXMFHOME = lsst-texmf/texmf
 
 # Add aglossary.tex as a dependancy here if you want a glossary (and remove acronyms.tex)
 $(DOCNAME).pdf: $(tex) meta.tex local.bib authors.tex acronyms.tex
-#latexmk -bibtex -xelatex -f $(DOCNAME)
+	latexmk -bibtex -xelatex -f $(DOCNAME)
 #	makeglossaries $(DOCNAME)
 #	xelatex $(DOCNAME)
 # For glossary uncomment the 2 lines above
 
 authors.tex:  authors.yaml
-	python3 $(TEXMFHOME)/../bin/db2authors.py -m lsstdoc > authors.tex
+	$(TEXMFHOME)/../bin/db2authors.py -m lsstdoc > authors.tex
 
 # Acronym tool allows for selection of acronyms based on tags - you may want more than DM
 # If this is a Science note put "Sci" or "Sci DM"
