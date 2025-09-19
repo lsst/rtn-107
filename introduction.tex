@@ -1,0 +1,22 @@
+\section{Introduction}
+
+Rubin Observatory will enable many scientific discoveries, including target-of-opportunity (ToO) observations of GW, high energy neutrino, potentially hazardous asteroids, and galactic supernova. 
+
+The $\sim10\deg^2$ field-of-view of the Rubin optical system allow ToO observations to survey a wide area, while the single-visit depth of the LSST-Camera allows single observations to rapidly observe the southern sky for faint transient phenomena. The combination of the large FOV and deep observations make Rubin Observatory an ideal tool for discovery of ToO phenomena.
+
+The Rubin ToO program encompasses 3\% of the LSST. Each target has a different observing strategy based on observing conditions, the conditions of the astrophysical event, and other parameters. The observing strategies are the product of community input, and were revised in 2024 (\cite{RubinToO2024}). These recommendations were accepted by the survey cadence optimization committee in January 2025 \citep{PSTN-056}.
+
+The Rubin ToO mock data challenge was spawned out of necessity to properly characterize the infrastructure and scientific potential of 3\% of the LSST. This challenge has included coordination with the LVK collaboration and the IceCube collaboration, who will be sending simulated data that is syntactically identical to real alerts. The action on the Rubin Observatory side is to parse and process these alerts as if we were in operations to obtain a better understanding of the ToO system.
+
+The deliverables of the mock data challenge are grounded in characterizing the technical and scientific outcomes of the ToO program. They are the following:
+
+\begin{itemize}
+    \item \textbf{How quickly can Rubin Observatory start observing after a ToO alert is received?} While there will be variance in ToO response time due to slew time being non-uniformly distributed, many aspects of the ToO time-to-response can be adequately measured with many additional ToO alerts.
+    \item \textbf{How efficient is Rubin Observatory at recovering the host of a ToO event?} Previous forecasts of candidate discoverability have been grounded in simulations, while this exercise utilizes data from the on-sky performance of Rubin observatory during the SV survey.
+    \item \textbf{Are changes to the community designed observing strategies necessary?} To adequately serve the Rubin ToO community, the observing strategies must reflect the desired outcomes of the multi-messenger community as requested.
+    \item \textbf{How can expert ToO scientists interact effectively with the ToO system, where many processes are fully automated?} This includes pursuing ToO's that were outside of the original alert criteria, stopping a ToO observation after it has begun, and gathering sufficient information to assess a specific ToO alert.
+\end{itemize}
+
+We describe the events and results of the first Rubin Observatory Target-of-Opportunity mock data challenge. In section \ref{sec:organization}, we describe the involvement of different experiments, and describe how they interact with the Rubin ToO ecosystem. In section \ref{sec:challenge}, we describe the events and activities of the data challenge itself. In section \ref{sec:latency}, we describe analyses of alert latency. In section \ref{sec:efficiency}, we describe analyses of observing efficiency. In section \ref{sec:stratGen}, we describe analyses of observing strategy generation. In section \ref{sec:human}, we describe the interaction between scientists and ToO infrastructure. Finally, in section \ref{sec:conclusion}, we conclude on the results herein and reflect ahead of future ToO activities.
+
+\newpage
