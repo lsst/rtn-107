@@ -1,0 +1,238 @@
+\documentclass[OPS,lsstdraft,authoryear,toc]{lsstdoc}
+\input{meta}
+
+% ---------------------------------------------------------------------------
+% DRAFT: technote-style build of the Rubin ToO MDC paper. The ApJS (AASTeX)
+% version of this manuscript lives in Rubin-ToO-dev/paper/main.tex; this file
+% is the same text converted to the lsstdoc class. Red text still needs input.
+% ---------------------------------------------------------------------------
+\usepackage{booktabs}
+\newcommand{\tbd}[1]{\textcolor{red}{[#1]}}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\ToO}{ToO\xspace}
+\newcommand{\mdc}{MDC\xspace}
+
+\title{An End-to-End Mock Data Challenge for Target-of-Opportunity Response with the Vera C. Rubin Observatory: Gravitational-Wave and Neutrino Alerts}
+% TODO: working title; confirm
+
+\hypersetup{
+    pdftitle={An End-to-End Mock Data Challenge for Target-of-Opportunity Response with the Vera C. Rubin Observatory},
+    pdfauthor={Sean Patrick MacBride},
+    pdfkeywords={gravitational waves, neutrinos, target of opportunity, Rubin Observatory, LSST, mock data challenge}
+}
+
+% TODO: ORCID, full author list and order, Rubin / LVK / IceCube publication-policy review
+\author{Sean P. MacBride}
+
+\setDocRef{RTN-107}
+\setDocUpstreamLocation{\url{https://github.com/lsst/rtn-107}}
+
+\date{\vcsDate}
+
+\setDocAbstract{%
+The Vera C.\ Rubin Observatory will devote about 3\% of the ten-year LSST to
+target-of-opportunity (ToO) observations, including follow-up of gravitational-wave (GW) events
+and high-energy neutrinos. We present the Rubin ToO Mock Data Challenge (\mdc),
+an end-to-end exercise in which \tbd{number} mock alerts from external experiments were
+delivered to the Rubin ToO system and the resulting observing response was simulated with the
+Rubin scheduler. Combining the simulated observations with simulated electromagnetic (EM)
+counterpart light curves generated with LightCurveLynx, we measure
+\tbd{headline detection fraction for GW MDC v1}, \tbd{headline for GW MDC v2}, and
+\tbd{headline for neutrino alerts}, and characterise the system latency between alert trigger and
+receipt on the summit (\tbd{median latency}). We discuss the implications for the
+LSST ToO strategy and for the design of future challenges.
+}
+
+\setDocChangeRecord{%
+  \addtohist{1}{2026-10-23}{Draft skeleton, converted from the ApJS (AASTeX) manuscript.}{MacBride}
+}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}\label{sec:intro}
+
+The discovery of the kilonova AT\,2017gfo following GW170817 \citep{Abbott2017MMA} demonstrated the
+scientific value of rapid, wide-field optical follow-up of multi-messenger sources. The Vera C.\ Rubin
+Observatory \citep{Ivezic2019} combines a $\sim$9.6\,deg$^2$ field of view with a large collecting area,
+and was designed with a dedicated ToO program of roughly 3\% of survey time
+\citep{Andreoni2022,MacBride2026}. ToO observations sit outside the normal survey mode of the LSST,
+so their performance depends on a chain of components that must work together: alert
+ingestion, conversion of an external localisation into a scheduler-readable footprint, the
+Rubin scheduler's response, and the on-sky observations themselves.
+
+\todo{1--2 paragraphs: Rubin ToO program history (Andreoni et al.\ 2022 ToO white paper / ToO 2024 workshop recommendations); state of the system in the first year of operations (MacBride et al.\ 2026, arXiv:2607.00217).}
+
+Before and during early operations, such a chain is best validated end to end with a mock data
+challenge. In a \mdc, external experiments inject simulated alerts into the same interfaces that real
+alerts will use, and the downstream response is measured against known truth.
+\todo{Describe the MDC concept, who ran it (LVK, IceCube, Rubin), dates, and how this relates to RTN-107.}
+
+This paper reports the results of the Rubin ToO \mdc{} for GW and neutrino alerts. Our contributions are:
+\begin{enumerate}
+  \item a description of the \mdc{} alert streams (two versions of the LVK \mdc{} and a neutrino simulation);
+  \item a reproducible pipeline that turns each alert into a simulated Rubin observing response using the Rubin scheduler;
+  \item a definition of EM counterpart ``detection'' that combines the simulated observations with simulated light curves; and
+  \item measured detection fractions, response times, and system latencies for each alert stream, with a discussion of implications for the LSST ToO program.
+\end{enumerate}
+
+The paper is organised as follows. Section~\ref{sec:data} describes the data; Section~\ref{sec:methods} the
+methods, including our definition of a detection; Section~\ref{sec:results} the results; and
+Sections~\ref{sec:discussion} and~\ref{sec:conclusion} the discussion and conclusions.
+
+%% ---------------------------------------------------------------------------
+\section{Data}\label{sec:data}
+
+Table~\ref{tab:data} summarises the data products used in this work.
+
+\begin{table}[ht]
+\centering\small
+\caption{Data products used in this work.\label{tab:data}}
+\begin{tabularx}{\textwidth}{l l X l}
+\toprule
+Product & Source & Content & Used in\\
+\midrule
+LVK \mdc{} v1 alerts & LVK \tbd{pipeline / production} & \tbd{N} events; localisation skymaps & \S\ref{sec:res_v1}\\
+LVK \mdc{} v2 alerts & LVK \tbd{pipeline / production} & \tbd{N} events; localisation skymaps & \S\ref{sec:res_v2}\\
+Neutrino alerts & IceCube \tbd{stream} & \tbd{N} events; localisations & \S\ref{sec:res_nu}\\
+EFD alert records & Rubin EFD & trigger and receipt timestamps; footprint & \S\ref{sec:latency}\\
+Simulated observations & Rubin scheduler & per-visit opsim tables & all\\
+Simulated counterparts & LightCurveLynx & light curves per injection & all\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Gravitational-wave alerts}\label{sec:data_gw}
+
+\todo{Describe MDC v1 and MDC v2: what differs (e.g.\ population, sky-map pipeline, alert content, latency model, case labels). Event counts by source class (BNS, NSBH, BBH, \dots) and by false-alarm-rate threshold.}
+
+For each GW alert the Rubin Engineering Facilities Database (EFD) record contains the trigger
+timestamp, the time the alert was received on the summit, an alert type, and a binary HEALPix
+footprint (\texttt{NSIDE}=32, nested ordering) of the region the scheduler is asked to cover. The
+source of each \mdc{} event is matched to a table of injection properties from the
+external experiment, which supplies the true sky position of the injected source
+(\texttt{declination}, \texttt{corrected\_ra}) used later to score detections.
+
+Beyond the \mdc{} events themselves, we also use LVK-format \texttt{bayestar} all-sky skymaps from simulated
+O4-like and O5-like observing-run populations (O4 HLV, O5a, O5b, O5c) to place the \mdc{}
+results in a population context \todo{decide whether this belongs in the paper or in a companion paper}.
+
+\subsection{Neutrino alerts}\label{sec:data_nu}
+
+\todo{Describe the IceCube neutrino alert simulation: alert stream (Gold/Bronze), event rate, localisation (error-ellipse $\to$ footprint), how mock alerts were generated and delivered, number of alerts, whether the sky coverage assumes a single event or a multiplet.}
+
+\subsection{Simulated EM observations}\label{sec:data_obs}
+
+The simulated observations are produced with the Rubin scheduler and the \texttt{lsst\_survey\_sim}
+framework, using the operational scheduler configuration (\texttt{ts\_config\_scheduler}, the
+\texttt{fbs\_config\_lsst\_survey.py} survey configuration and the block-407 deep-drilling-field
+generator), together with \texttt{rubin\_nights} utilities for day-obs and observatory
+modelling \todo{versions, commits, and citations}. Previously executed visits are loaded from
+an \texttt{opsim} table so that the scheduler starts each simulation in the state of the real survey on the
+night before the alert. The science programs considered are \texttt{BLOCK-365}, \texttt{BLOCK-407}
+and \texttt{BLOCK-408}.
+
+\subsection{Simulated EM counterparts}\label{sec:data_lc}
+
+\todo{LightCurveLynx: package version and citation; source models used per alert class (e.g.\ kilonova grid for BNS/NSBH; neutrino counterparts such as supernovae/TDEs/blazar flares); priors on peak luminosity, redshift/distance (drawn from the GW distance posterior where applicable), extinction; number of injections per event; time sampling.}
+
+\section{Methods}\label{sec:methods}
+
+\subsection{From alert to scheduler footprint}\label{sec:footprint}
+
+For simulated skymaps, the 90\% credible region is computed from the probability density with the
+greedy credible-level algorithm \citep[\texttt{ligo.skymap};][]{Singer2016}. The resulting
+mask is down-sampled to \texttt{NSIDE}=32, and any coarse pixel containing any part of
+the 90\% region is retained, so that the footprint is binary and inclusive. This reproduces the
+operation performed on the summit. For \mdc{} events the footprint is taken
+directly from the EFD record. A pointing centre for the ToO is drawn at random from within
+the footprint \todo{confirm: in current scripts, the centre is a randomly selected footprint pixel; state whether this affects the response}.
+
+\subsection{Scheduler simulation}\label{sec:sim}
+
+Each alert is wrapped in a \texttt{TargetoO} object (trigger time, duration, footprint, centre and
+ToO type) and passed to the scheduler through a simulated ToO server. One ToO is simulated
+per run. The simulation starts on the day-obs preceding the trigger and runs for a number of nights that
+depends on the alert type: 20 nights for GW events, 50 for binary black holes, 30 for neutrinos, and 5
+each for solar-system and Galactic-supernova alerts. For skymap-driven simulations of
+O4/O5-like events a fixed duration of 20 nights is used \todo{one script uses 10; confirm which applies where}.
+Multi-night runs include modelled downtime and clouds; single-night runs do not.
+\todo{State seeing model (default vs.\ fixed), whether real EFD downtime is replayed, and the band scheduler configuration.}
+
+\subsection{Observing strategies}\label{sec:strategies}
+
+Two ToO strategies, labelled ``gold'' and ``silver,'' are mapped to the scheduler ToO types
+\texttt{GW\_case\_B} and \texttt{GW\_case\_D}, respectively. \todo{Define each case in physical terms: bands, number of visits per field, cadence over the follow-up, depth, area-based triggers.}
+For the population simulations, trigger times are drawn uniformly over one year (MJD 61041--61407) to average over
+the observing-season and lunar-phase dependence of the response.
+
+\subsection{Counterpart light curves}\label{sec:lc_methods}
+
+\todo{How LightCurveLynx is configured and evaluated against the simulated visits: observing-band bookkeeping, per-visit 5$\sigma$ depth (from the opsim $m_5$ column), photometric noise model, treatment of non-detections, host/extinction, and any peculiarities of sampling light curves on irregular, multi-band visit tables.}
+
+\subsection{Definition of a detection}\label{sec:detection}
+
+\todo{Fix and state the detection criterion. Candidate formulation to confirm or replace:}
+an injected counterpart is \emph{covered} if its true position falls inside a simulated visit footprint,
+and \emph{detected} if, among covered visits, the simulated flux exceeds the visit's 5$\sigma$ limiting
+magnitude on at least $N_{\rm det}=\tbd{N}$ epochs in at least $N_{\rm band}=\tbd{N}$ bands within
+$\Delta t=\tbd{window}$ of the trigger. We report separately
+(i) the \emph{sky-coverage fraction}, (ii) the \emph{coverage-and-depth fraction}, and (iii) the \emph{detection fraction}
+after the full criterion, and we state the dependence on each threshold in Section~\ref{sec:discussion}.
+\todo{Also: how detection is scored against GW localisation (probability-weighted coverage) vs.\ against injected position.}
+
+\subsection{System latency}\label{sec:latency}
+
+For each \mdc{} alert we compute the interval between the event trigger timestamp and the time at
+which the alert was recorded in the EFD on the summit, and report its distribution.
+\todo{Decompose into external-experiment latency and Rubin-internal latency if the timestamps allow; relation to the Rubin system latency analysis.}
+
+\subsection{Reproducibility and computing}\label{sec:compute}
+
+Each simulation is an independent single-core job (16\,GB memory, 30\,min wall-time request) run as a SLURM
+array over the list of alerts, with one array task per skymap. The simulation scripts are available at
+\url{https://github.com/seanmacb/Rubin-ToO-dev} \todo{archive with DOI (Zenodo) and freeze versions}.
+
+\section{Results}\label{sec:results}
+
+\subsection{LVK MDC version 1}\label{sec:res_v1}
+\todo{Event table; sky-coverage, coverage-and-depth and detection fractions vs.\ source class, distance, and localisation area; time-to-first-observation distribution; latency; example sky map with executed visits (figure).}
+
+\subsection{LVK MDC version 2}\label{sec:res_v2}
+\todo{Same quantities as v1; direct comparison of v1 and v2, and attribution of any differences (population, strategy, system changes).}
+
+\subsection{Neutrino simulations}\label{sec:res_nu}
+\todo{Coverage and detection fractions for the neutrino footprints; sensitivity to the footprint size and the assumed counterpart class; time-to-first-observation.}
+
+\subsection{Population-level estimates}\label{sec:res_pop}
+\todo{Optional: O4-like and O5a/b/c gold vs.\ silver strategy comparison from the population simulations. Remove if out of scope.}
+
+\section{Discussion}\label{sec:discussion}
+\todo{(1) What the challenge showed works and what failed; (2) sensitivity of the detection fraction to the definition thresholds and light-curve models; (3) limitations: one ToO per simulation, no competing ToOs or follow-up of earlier alerts, simplified weather/downtime, no image-subtraction or transient-vetting efficiency, light-curve model uncertainty; (4) latency budget relative to kilonova fading timescales; (5) recommendations for ToO strategy and for MDC v3.}
+
+\section{Conclusion}\label{sec:conclusion}
+\todo{Short summary of headline numbers and recommendations; data and code availability.}
+
+\appendix
+
+\section{Acknowledgements}
+
+This material is based upon work supported in part by the National Science Foundation through Cooperative Agreements AST-1258333 and AST-2241526 and Cooperative Support Agreements AST-1202910 and AST-2211468 managed by the Association of Universities for Research in Astronomy (AURA), and the Department of Energy under Contract No.\ DE-AC02-76SF00515 with the SLAC National Accelerator Laboratory managed by Stanford University.
+Additional Rubin Observatory funding comes from private donations, grants to universities, and in-kind support from LSST-DA Institutional Members.
+
+% TODO: LVK and IceCube acknowledgement wording; funding; computing resources (University of Zurich science cluster).
+
+\section{Facilities and software}
+
+\paragraph{Facilities.} Rubin:Simonyi (LSSTCam), LIGO, Virgo, KAGRA, IceCube
+
+\paragraph{Software.} rubin\_scheduler, rubin\_sim, lsst\_survey\_sim, rubin\_nights, LightCurveLynx, healpy \citep{Zonca2019}, ligo.skymap \citep{Singer2016}, astropy, numpy, pandas, matplotlib
+
+% TODO: add astropy/numpy/matplotlib citations per AAS software policy
+
+\section{References} \label{sec:bib}
+\renewcommand{\refname}{} % Suppress default Bibliography section
+\bibliography{references,lsst,lsst-dm,refs_ads,refs,books}
+
+\end{document}
